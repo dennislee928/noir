@@ -80,6 +80,17 @@ mutants.out.old
 # Claude Code worktrees
 .claude/worktrees/
 /.nargo-logs
+
+/.nargo-logs2
+/.vscode
+options.txt
+.vscode/settings.json
+/demo/usb-auth/dist
+demo/usb-auth/dist/assets/index-BTrrgA5k.js
+demo/usb-auth/dist/index.html
+/demo/usb-auth/dist
+
 .nargo-logs2/nargo-log.2026-05-27
 options.txt
 .ignore.txt
+

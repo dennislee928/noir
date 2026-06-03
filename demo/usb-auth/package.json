@@ -1,0 +1,29 @@
+{
+  "name": "usb_auth_demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "usb-auth": "./src/cli.js"
+  },
+  "scripts": {
+    "dev": "node --max-old-space-size=8192 ../../node_modules/vite/bin/vite.js --host 127.0.0.1",
+    "generate:circuit": "node scripts/generate-circuit-artifact.js",
+    "build": "node ../../node_modules/vite/bin/vite.js build",
+    "test": "mocha --exit --timeout 30000 test/fields.test.js test/providers.test.js test/secret-file.test.js",
+    "test:proof": "mocha --exit --timeout 120000 test/proof.test.js"
+  },
+  "dependencies": {
+    "@aztec/bb.js": "5.0.0-nightly.20260522",
+    "@noir-lang/noir_js": "workspace:*",
+    "@vitejs/plugin-react": "^6.0.2",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.19.19",
+    "mocha": "^11.7.5",
+    "vite": "^8.0.10",
+    "vite-plugin-node-polyfills": "0.28.0"
+  }
+}
