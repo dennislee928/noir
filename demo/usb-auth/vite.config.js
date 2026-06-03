@@ -1,16 +1,66 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { nodePolyfills } from 'vite-plugin-node-polyfills';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 // Workspace root — two levels up from demo/usb-auth.
 // Vite must be allowed to serve @aztec/bb.js worker scripts that live here.
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const bbBrowserDir = path.resolve(workspaceRoot, 'demo/node_modules/@aztec/bb.js/dest/browser');
+
+function contentType(filePath) {
+  if (filePath.endsWith('.js')) return 'text/javascript';
+  if (filePath.endsWith('.wasm')) return 'application/wasm';
+  if (filePath.endsWith('.gz')) return 'application/gzip';
+  if (filePath.endsWith('.json') || filePath.endsWith('.map')) return 'application/json';
+  if (filePath.endsWith('.d.ts')) return 'text/plain';
+  return 'application/octet-stream';
+}
+
+function bbStaticBundle() {
+  let outDir;
+
+  return {
+    name: 'bb-static-bundle',
+    configureServer(server) {
+      server.middlewares.use('/vendor/bb.js', (req, res, next) => {
+        const requestPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+        const filePath = path.resolve(bbBrowserDir, `.${requestPath}`);
+
+        if (!filePath.startsWith(`${bbBrowserDir}${path.sep}`)) {
+          res.statusCode = 403;
+          res.end('Forbidden');
+          return;
+        }
+
+        fs.stat(filePath, (err, stat) => {
+          if (err || !stat.isFile()) {
+            next();
+            return;
+          }
+
+          res.setHeader('Content-Type', contentType(filePath));
+          res.setHeader('Cache-Control', 'no-cache');
+          fs.createReadStream(filePath).pipe(res);
+        });
+      });
+    },
+    configResolved(config) {
+      outDir = config.build.outDir;
+    },
+    closeBundle() {
+      if (!outDir) return;
+      fs.cpSync(bbBrowserDir, path.resolve(outDir, 'vendor/bb.js'), { recursive: true });
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
     react(),
+    bbStaticBundle(),
     nodePolyfills({
       include: ['buffer'],
       globals: { Buffer: true, global: true, process: false },

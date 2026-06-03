@@ -1,6 +1,13 @@
-import { Barretenberg, UltraHonkBackend } from '@aztec/bb.js';
 import { Noir } from '@noir-lang/noir_js';
 import { computeCommitment, computeNullifier, fieldToString, randomField, userIdToField } from './fields.js';
+
+const BB_JS_BROWSER_ENTRY = '/vendor/bb.js/index.js';
+const BB_JS_NODE_ENTRY = '@aztec/bb.js';
+
+async function loadBbJs() {
+  const entry = typeof window === 'undefined' ? BB_JS_NODE_ENTRY : BB_JS_BROWSER_ENTRY;
+  return import(/* @vite-ignore */ entry);
+}
 
 export async function createAuthInputs({ deviceSecret, userId, usbSerial = 0, challenge = randomField() }) {
   const userIdHash = await userIdToField(userId);
@@ -23,6 +30,7 @@ export async function createAuthInputs({ deviceSecret, userId, usbSerial = 0, ch
 }
 
 export async function generateAndVerifyProof(circuit, authInputs) {
+  const { Barretenberg, UltraHonkBackend } = await loadBbJs();
   const barretenberg = await Barretenberg.new();
   try {
     const noir = new Noir(circuit);

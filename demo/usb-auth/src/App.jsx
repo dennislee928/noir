@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { BrowserFileSecretProvider, FidoHsmSecretProvider, WebUsbSecretProvider } from './secret-providers.js';
 import { createEncryptedSecretFile, serializeEncryptedSecretFile } from './secret-file.js';
 import { randomField, userIdToField, computeCommitment } from './fields.js';
