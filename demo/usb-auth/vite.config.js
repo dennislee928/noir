@@ -9,6 +9,16 @@ import path from 'node:path';
 // Vite must be allowed to serve @aztec/bb.js worker scripts that live here.
 const workspaceRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const bbBrowserDir = path.resolve(workspaceRoot, 'demo/node_modules/@aztec/bb.js/dest/browser');
+const noirWasmFiles = new Map([
+  [
+    '/node_modules/.vite/deps/acvm_js_bg.wasm',
+    path.resolve(workspaceRoot, 'demo/node_modules/@noir-lang/acvm_js/web/acvm_js_bg.wasm'),
+  ],
+  [
+    '/node_modules/.vite/deps/noirc_abi_wasm_bg.wasm',
+    path.resolve(workspaceRoot, 'demo/node_modules/@noir-lang/noirc_abi/web/noirc_abi_wasm_bg.wasm'),
+  ],
+]);
 
 function contentType(filePath) {
   if (filePath.endsWith('.js')) return 'text/javascript';
@@ -57,10 +67,32 @@ function bbStaticBundle() {
   };
 }
 
+function noirWasmDeps() {
+  return {
+    name: 'noir-wasm-deps',
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const requestPath = decodeURIComponent(new URL(req.url ?? '/', 'http://localhost').pathname);
+        const filePath = noirWasmFiles.get(requestPath);
+
+        if (!filePath) {
+          next();
+          return;
+        }
+
+        res.setHeader('Content-Type', 'application/wasm');
+        res.setHeader('Cache-Control', 'no-cache');
+        fs.createReadStream(filePath).pipe(res);
+      });
+    },
+  };
+}
+
 export default defineConfig({
   plugins: [
     react(),
     bbStaticBundle(),
+    noirWasmDeps(),
     nodePolyfills({
       include: ['buffer'],
       globals: { Buffer: true, global: true, process: false },

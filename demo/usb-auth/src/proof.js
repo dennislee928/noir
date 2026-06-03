@@ -11,20 +11,29 @@ async function loadBbJs() {
 
 export async function createAuthInputs({ deviceSecret, userId, usbSerial = 0, challenge = randomField() }) {
   const userIdHash = await userIdToField(userId);
+  const normalizedDeviceSecret = fieldToString(deviceSecret);
+  const normalizedUsbSerial = fieldToString(usbSerial);
+  const normalizedChallenge = fieldToString(challenge);
+  const commitment = computeCommitment(normalizedDeviceSecret, userIdHash);
   return {
     privateInputs: {
-      device_secret: deviceSecret,
-      usb_serial: usbSerial,
-      commitment: computeCommitment(deviceSecret, userIdHash),
-      challenge,
+      device_secret: normalizedDeviceSecret,
+      usb_serial: normalizedUsbSerial,
+      commitment,
+      challenge: normalizedChallenge,
       user_id_hash: userIdHash,
     },
     publicInputs: {
-      usb_serial: usbSerial,
-      commitment: computeCommitment(deviceSecret, userIdHash),
-      challenge,
+      usb_serial: normalizedUsbSerial,
+      commitment,
+      challenge: normalizedChallenge,
       user_id_hash: userIdHash,
-      expected_nullifier: computeNullifier(deviceSecret, challenge, userIdHash, usbSerial),
+      expected_nullifier: computeNullifier(
+        normalizedDeviceSecret,
+        normalizedChallenge,
+        userIdHash,
+        normalizedUsbSerial,
+      ),
     },
   };
 }
