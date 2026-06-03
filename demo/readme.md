@@ -1,40 +1,40 @@
-# Noir Demo — USB ZK Auth
+# Noir Demos
 
+This directory contains several demos showcasing Noir's zero-knowledge capabilities in real-world scenarios.
+
+## Demos
+
+### 1. USB ZK Auth (`demo/usb-auth`)
 A zero-knowledge authentication demo where a USB drive acts as a hardware key.
 The browser generates a Noir proof bound to the drive's volume serial number; a
 standalone native verifier checks the proof offline without any internet connection.
 
----
-
-## Project Layout
-
-```
-demo/
-├── usb-auth/          ← the only runnable demo (web + CLI + tests)
-│   ├── src/
-│   │   ├── main.nr            Noir circuit (hardware-bound ZK proof)
-│   │   ├── circuit-artifact.js  compiled circuit (auto-generated)
-│   │   ├── app.js             browser frontend
-│   │   ├── cli.js             Node.js CLI (register / prove / verify)
-│   │   ├── proof.js           proof generation & verification (WASM)
-│   │   ├── fields.js          BN254 field helpers
-│   │   ├── secret-file.js     AES-256-GCM encrypted secret file
-│   │   └── secret-providers.js  browser / node / WebUSB / FIDO providers
-│   ├── test/                  unit + proof tests (Mocha)
-│   ├── scripts/               circuit build helper
-│   ├── Nargo.toml             Noir package config
-│   └── Prover.toml            example proof inputs
-│
-├── server/            ← empty (placeholder, no source files)
-├── client/            ← empty (placeholder, no source files)
-└── readme.md          ← this file
-```
-
-The native Rust verifier lives in the workspace at `tooling/usb-verifier-rs/`.
+### 2. ZK Recovery (`demo/client` & `demo/server`)
+A demonstration of account recovery using zero-knowledge proofs. It consists of:
+- **Client**: A React frontend for generating recovery proofs.
+- **Server**: A Node.js backend for verifying recovery proofs and managing user commitments.
 
 ---
 
-## Prerequisites
+## Running with Docker (Recommended)
+
+The easiest way to start all demo services is using Docker Compose.
+
+```bash
+cd demo
+docker-compose up --build
+```
+
+This will start:
+- **USB ZK Auth**: http://localhost:5173
+- **ZK Recovery Client**: http://localhost:5174
+- **ZK Recovery Server**: http://localhost:3002
+
+---
+
+## Running Manually
+
+### Prerequisites
 
 | Tool | Version | Install |
 |------|---------|---------|
@@ -44,81 +44,60 @@ The native Rust verifier lives in the workspace at `tooling/usb-verifier-rs/`.
 
 Install JS dependencies from the **workspace root** once:
 
-```powershell
-yarn install
+```bash
+node .yarn/releases/yarn-4.13.0.cjs install
 ```
 
----
+### 1 — USB ZK Auth
 
-## 1 — Web Browser Demo
-
-```powershell
-cd demo\usb-auth
-npm run dev
+```bash
+cd demo/usb-auth
+node ../../.yarn/releases/yarn-4.13.0.cjs dev
 ```
 
 Open **http://127.0.0.1:5173** in your browser.
 
-### What the demo does
-
-1. **Register** — encrypts a random device secret with your PIN and saves it to the USB
-   (via File System Access API) or downloads it as a JSON file.
-2. **Prove** — decrypts the secret, runs the Noir circuit in WASM, produces a ZK proof
-   bound to the USB volume serial number.
-3. **Download USB Package** — after proving, download `proof.json` + `README.txt` +
-   `verify-usb.bat` / `verify-usb.sh` scripts for fully-offline verification.
-
-### Detecting the USB serial
-
+#### Detecting the USB serial
 Click **Auto-Detect** next to the serial field to trigger WebUSB device selection.
-If WebUSB is unavailable, paste the serial manually.
-
-On Windows, read it with:
-
+On Windows, you can read it manually with:
 ```powershell
 vol D:
-# Volume Serial Number is 1234-ABCD  →  use 305441741 (hex 0x1234ABCD, no dash)
+# Volume Serial Number is 1234-ABCD -> use 305441741 (hex 0x1234ABCD)
 ```
+
+### 2 — ZK Recovery
+
+**Start the Server:**
+```bash
+cd demo/server
+npm install
+npm start
+```
+
+**Start the Client:**
+```bash
+cd demo/client
+npm install
+npm run build:recovery-artifact # Compiles the circuit
+npm run dev
+```
+
+Open **http://localhost:5173** (if running standalone).
 
 ---
 
-## 2 — Node.js CLI
+## Project Layout
 
-All commands must be run from inside `demo\usb-auth\`:
-
-```powershell
-cd demo\usb-auth
+```
+demo/
+├── usb-auth/          ← USB Authentication Demo
+├── server/            ← ZK Recovery Backend
+├── client/            ← ZK Recovery Frontend
+├── docker-compose.yaml
+└── readme.md
 ```
 
-### Register — create an encrypted secret file
-
-```powershell
-node src/cli.js register --out secret.json --pin mypin123 --user alice
-```
-
-Outputs the commitment hash and user-id hash to stdout (JSON).
-
-### Prove — generate a ZK proof
-
-```powershell
-node src/cli.js prove `
-  --secret secret.json `
-  --pin    mypin123 `
-  --user   alice `
-  --out    proof.json
-```
-
-Saves `proof.json` and prints it to stdout. Add `--challenge <field>` to fix the
-challenge value (defaults to random).
-
-### Verify — structural check of a saved proof
-
-```powershell
-node src/cli.js verify --proof proof.json
-```
-
-Reads `proof.json` and echoes back `verified` + `nullifier`. This is a structural
-check only — cryptographic re-verification requires the native Rust verifier or `bb`.
+The native Rust verifier for USB auth lives in `tooling/usb-verifier-rs/`.
 
 ---
 
